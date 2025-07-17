@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EC2 Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">EC2 Instances</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.path == '/eks' %}active{% endif %}" href="/eks">EKS Clusters</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.path == '/rds' %}active{% endif %}" href="/rds">RDS Instances</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+    <h2 class="text-center mb-4">AWS EC2 Instances Dashboard</h2>
+
+    <form method="GET" class="row g-3 mb-4">
+        <div class="col-md-2">
+            <label class="form-label">State</label>
+            <select name="state" class="form-select">
+                <option value="">All</option>
+                {% for s in field_options.states %}
+                    <option value="{{ s }}" {% if s == current_filters.state %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Type</label>
+            <select name="type" class="form-select">
+                <option value="">All</option>
+                {% for t in field_options.types %}
+                    <option value="{{ t }}" {% if t == current_filters.type %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Zone</label>
+            <select name="zone" class="form-select">
+                <option value="">All</option>
+                {% for z in field_options.zones %}
+                    <option value="{{ z }}" {% if z == current_filters.zone %}selected{% endif %}>{{ z }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Region</label>
+            <select name="region" class="form-select">
+                <option value="">All</option>
+                {% for r in field_options.regions %}
+                    <option value="{{ r }}" {% if r == current_filters.region %}selected{% endif %}>{{ r }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+            <a href="/" class="btn btn-secondary me-2">Reset</a>
+            <a href="/refresh" class="btn btn-success">🔄 Refresh</a>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Region</th>
+                    <th>Instance ID</th>
+                    <th>State</th>
+                    <th>Type</th>
+                    <th>Availability Zone</th>
+                    <th>Public IP</th>
+                    <th>Private IP</th>
+                    <th>Attached Volumes</th>
+                    <th>Patch Status</th>
+                    <!-- <th>Launched At</th> -->
+
+                </tr>
+            </thead>
+            <tbody>
+                {% for instance in instances %}
+                <tr>
+                    <td>{{ instance.Region }}</td>
+                    <td>{{ instance.InstanceId }}</td>
+                    <td>
+                        <span class="px-2 py-1 rounded
+                            {% if instance.State == 'running' %}
+                                bg-success text-white
+                            {% elif instance.State == 'stopped' %}
+                                bg-warning text-dark
+                            {% elif instance.State == 'terminated' %}
+                                bg-danger text-white
+                            {% else %}
+                                bg-secondary text-white
+                            {% endif %}
+                        ">
+                            {{ instance.State | capitalize }}
+                        </span>
+                    </td>
+
+                    <td>{{ instance.InstanceType }}</td>
+                    <td>{{ instance.AvailabilityZone }}</td>
+                    <td>{{ instance.PublicIpAddress }}</td>
+                    <td>{{ instance.PrivateIpAddress }}</td>
+                    <td>
+                        {% for vol in instance.BlockDevices %}
+                            <div>
+                                <i class="bi bi-hdd-fill text-primary"></i>
+                                <strong>{{ vol.DeviceName }}</strong> →
+                                <code>{{ vol.VolumeId }}</code>
+                                ({{ vol.Size }} GiB, {{ vol.VolumeType }})
+                            </div>
+                        {% else %}
+                            <div><i class="bi bi-hdd-slash text-muted"></i> No Volumes</div>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% if instance.PatchStatus == 'UP_TO_DATE' %}
+                        <span class="badge bg-success">Up to Date</span>
+                        {% elif instance.PatchStatus == 'MISSING' %}
+                        <span class="badge bg-warning text-dark">Update Available</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <!-- <td>
+                        <div>{{ instance.LaunchTimeHuman }}</div>
+                        <div class="text-muted small">{{ instance.LaunchTime }}</div>
+                    </td> -->
+
+
+
+                </tr>
+
+                {% endfor %}
+                {% if not instances %}
+                <tr>
+                    <td colspan="6" class="text-center">No EC2 instances found for selected filters.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>
